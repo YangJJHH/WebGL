@@ -7,10 +7,10 @@ var texCoords = [];
 var moveSpeed = 0.05;
 var term = 0;
 var max = -90;
+var tireTheta = 0;
 
 var program0,program1,program2;
 var modelMatrixLoc0, viewMatrixLoc0,modelMatrixLoc1, viewMatrixLoc1,modelMatrixLoc2, viewMatrixLoc2;
-var trballMatrix = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
 var vertCubeStart,numVertCubeTri, vertPyraStart,numVertPyraTri, vertGroundStart,numVertGroundTri, numVertGroundLine;
 var eyePos = vec3(0.0, 1.0, 0.0);
 var atPos = vec3(0.0, 1.0, -3.0);
@@ -34,31 +34,10 @@ window.onload = function init()
     generateHexaPyramid();
     
 
-    // virtual trackball
-    var trball = trackball(canvas.width, canvas.height);
-    var mouseDown = false;
-
-    canvas.addEventListener("mousedown", function (event) {
-        trball.start(event.clientX, event.clientY);
-
-        mouseDown = true;
-    });
-
-    canvas.addEventListener("mouseup", function (event) {
-        mouseDown = false;
-    });
-
-    canvas.addEventListener("mousemove", function (event) {
-        if (mouseDown) {
-            trball.end(event.clientX, event.clientY);
-
-            trballMatrix = mat4(trball.rotationMatrix);
-        }
-    });
 
     // Configure WebGL
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.4, 0.4, 0.9, 0.6);
 
     // Enable hidden-surface removal
     gl.enable(gl.DEPTH_TEST);
@@ -165,7 +144,8 @@ window.onkeydown = function(event) {
         case 65:    // 'A'
         case 97:    // 'a'
             var newPosX = eyePos[0] - 0.1;
-            if (newPosX > -5 && newPosX < 5) {
+            tireTheta = -20; //바퀴회전
+            if (newPosX >= -4.5 ) {
                 eyePos[0] = newPosX;
             } 
             break;
@@ -173,23 +153,27 @@ window.onkeydown = function(event) {
         case 68:    // 'D'
         case 100:   // 'd'
             var newPosX = eyePos[0] + 0.1;
-            if (newPosX > -5 && newPosX < 5) {
+            tireTheta = 20;  //바퀴회전
+            if (newPosX <= 4.5) {
                 eyePos[0] = newPosX;
             } 
             break;
     }
     //render();
 };
+window.onkeyup = function(event){
+    tireTheta = 0;
+}
 
 function setLighting(program) {
-    var lightSrc = [0.0, 1.0, 0.0, 0.0];
-    var lightAmbient = [0.0, 0.0, 0.0, 1.0];
+    var lightSrc = [0.0, 2.0, 1.0, 0.0];
+    var lightAmbient = [0.4, 0.4, 0.4, 1.0];
     var lightDiffuse = [1.0, 1.0, 1.0, 1.0];
     var lightSpecular = [1.0, 1.0, 1.0, 1.0];
     
     var matAmbient = [1.0, 1.0, 1.0, 1.0];
     var matDiffuse = [1.0, 1.0, 1.0, 1.0];
-    var matSpecular = [1.0, 1.0, 1.0, 1.0];
+    var matSpecular = [0.0, 0.0, 0.0, 1.0];
     
     var ambientProduct = mult(lightAmbient, matAmbient);
     var diffuseProduct = mult(lightDiffuse, matDiffuse);
@@ -212,10 +196,8 @@ function setTexture(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D,texture0);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image0);
-
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 
     var image1 = new Image();
     image1.src = "../images/crate.bmp"
@@ -225,9 +207,8 @@ function setTexture(){
     gl.bindTexture(gl.TEXTURE_2D,texture1);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image1);
 
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 
 
     var image2 = new Image();
@@ -237,9 +218,28 @@ function setTexture(){
     gl.bindTexture(gl.TEXTURE_2D,texture2);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image2);
 
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+
+    var image3 = new Image();
+    image3.src = "../images/outdoor.bmp"
+    var texture3 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D,texture3);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image3);
+
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+
+    var image4 = new Image();
+    image4.src = "../images/tire.bmp"
+    var texture4 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D,texture4);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image4);
+
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 
 }
 
@@ -273,21 +273,18 @@ function render() {
     if((atPos[2]-max)<=50){
         //term = max;
         ground(max);
+        map(max);
     }
     if(atPos[2]<=max){
         term = max;
         max += -100;
     }
     ground(term);
-    map();
+    map(term);
     //////////////car
-    gl.useProgram(program0);
-    var car = translate(atPos[0], -0.5, atPos[2]);
-    //var sMatrix = mat4(1.0,0.0,0.0,0.0 ,0.0,0.3,0.0,0.0 ,0.0,0.0,2.0,0.0 ,0.0,0.0,0.0,1.0);
-    car = mult(trballMatrix, car);
-    gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(car));
-    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+    player();
 
+    moveSpeed+=0.00001;
     window.requestAnimationFrame(render);
 }
 function ground(term2){
@@ -295,54 +292,135 @@ function ground(term2){
         // draw the ground
     //gl.uniform4f(uColorLoc, 0.8, 0.8, 0.8, 1.0);    // gray
     gl.useProgram(program2);
-    gl.uniform1i(textureLoc,0);
+    
     //gl.uniform4f(diffuseProductLoc,0.8,0.8,0.8,1.0);
     for(var i=0; i<5; i++){
         modelMatrix = translate(0,0,term2+(i*-20));
         gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
-        gl.drawArrays(gl.TRIANGLES, vertGroundStart, numVertGroundTri);
+        gl.uniform1i(textureLoc,2);
+        gl.drawArrays(gl.TRIANGLES, vertGroundStart, vertGroundStart+120*5); //한줄에 120 5줄은 120*5
+        gl.uniform1i(textureLoc,0);
+        gl.drawArrays(gl.TRIANGLES, vertGroundStart+120*5, vertGroundStart+120*10);
+        gl.uniform1i(textureLoc,2);
+        gl.drawArrays(gl.TRIANGLES, vertGroundStart+120*5+vertGroundStart+120*10, 120*5); //한줄에 120 5줄은 120*5
+
     }
 }
-function map(){
-    for (var z=-5; z<0; z+=2) {
-        // draw a cube
+
+function player(){
+    gl.useProgram(program1);
+    var diffuseProductLoc = gl.getUniformLocation(program1, "diffuseProduct");
+    gl.uniform4f(diffuseProductLoc,0.0,2.0,0.0,1.0);
+
+    //차 본체
+    modelMatrix = translate(atPos[0], -0.3, atPos[2]);
+    var sMatrix = mat4(0.5,0.0,0.0,0.0 ,0.0,0.5,0.0,0.0 ,0.0,0.0,0.5,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(modelMatrix,sMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc1, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+
+    modelMatrix = translate(atPos[0], 0.2, atPos[2]);
+    var sMatrix = mat4(0.5,0.0,0.0,0.0 ,0.0,0.5,0.0,0.0 ,0.0,0.0,0.5,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(modelMatrix,sMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc1, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+
+    gl.uniform4f(diffuseProductLoc,0.0,2.0,0.0,1.0);
+    modelMatrix = translate(atPos[0], 0.0, atPos[2]);
+    var sMatrix = mat4(1.0,0.0,0.0,0.0 ,0.0,0.5,0.0,0.0 ,0.0,0.0,1.0,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(modelMatrix,sMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc1, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+    //후방등
+    gl.uniform4f(diffuseProductLoc,2.0,0.0,0.0,1.0);
+    modelMatrix = translate(atPos[0]-0.25, 0.2, atPos[2]+0.9);
+    var sMatrix = mat4(0.2,0.0,0.0,0.0 ,0.0,0.1,0.0,0.0 ,0.0,0.0,0.1,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(modelMatrix,sMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc1, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+    modelMatrix = translate(atPos[0]+0.25, 0.2, atPos[2]+0.9);
+    var sMatrix = mat4(0.2,0.0,0.0,0.0 ,0.0,0.1,0.0,0.0 ,0.0,0.0,0.1,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(modelMatrix,sMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc1, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+    
+    //바퀴
+    gl.useProgram(program2);
+    gl.uniform1i(textureLoc,4);
+    var sMatrix = mat4(0.2,0.0,0.0,0.0 ,0.0,0.3,0.0,0.0 ,0.0,0.0,0.3,0.0 ,0.0,0.0,0.0,1.0);
+    modelMatrix = mult(rotateX(theta),sMatrix);
+    modelMatrix = mult(rotateY(tireTheta),modelMatrix);
+    modelMatrix = mult(translate(atPos[0]-0.35, -0.5, atPos[2]+0.25), modelMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+    modelMatrix = mult(rotateX(theta),sMatrix);
+    modelMatrix = mult(rotateY(tireTheta),modelMatrix);
+    modelMatrix = mult(translate(atPos[0]+0.35, -0.5, atPos[2]+0.25), modelMatrix);
+    gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+    gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+    
+}
+function map(term2){
+    for(var i=0; i<5; i++){
+        for (var z=-5; z<0; z+=2) {
+            // draw a cube
+            gl.useProgram(program2);
+            gl.uniform1i(textureLoc,1);
+            //gl.uniform4f(uColorLoc, 1.0, 0.0, 0.0, 1.0);    // red
+            //gl.uniform4f(diffuseProductLoc,1.0,0.0,0.0,1.0);
+            
+            var rMatrix = mult(rotateY(theta), rotateZ(45));
+            modelMatrix = mult(translate(-6, 1.3, z+term2+(i*-20)), rMatrix);
+            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+            modelMatrix = mult(translate(6, 1.3, z+term2+(i*-20)), rMatrix);
+            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+    
+            // draw a hexa-pyramid
+            gl.useProgram(program0);
+            //gl.uniform4f(uColorLoc, 0.0, 0.0, 1.0, 1.0);    // blue
+            gl.uniform4f(uColorLoc,0.0,0.0,1.0,0.5);
+    
+            gl.disable(gl.DEPTH_TEST);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+            
+            modelMatrix = mult(translate(-6, -0.5, z+term2+(i*-20)), rotateZ(180));
+            gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
+    
+            modelMatrix = mult(translate(6, -0.5, z+term2+(i*-20)), rotateZ(180));
+            gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
+            
+            gl.disable(gl.BLEND);
+            gl.enable(gl.DEPTH_TEST);
+        }
+
+        //건물
         gl.useProgram(program2);
-        gl.uniform1i(textureLoc,1);
-        //gl.uniform4f(uColorLoc, 1.0, 0.0, 0.0, 1.0);    // red
-        //gl.uniform4f(diffuseProductLoc,1.0,0.0,0.0,1.0);
-        
-        var rMatrix = mult(rotateY(theta), rotateZ(45));
-        modelMatrix = mult(translate(-3, 1.3, z), rMatrix);
-        modelMatrix = mult(trballMatrix, modelMatrix);
+        gl.uniform1i(textureLoc,3);
+        var sMatrix = mat4(2.0,0.0,0.0,0.0 ,0.0,15.0,0.0,0.0 ,0.0,0.0,9.0,0.0 ,0.0,0.0,0.0,1.0);
+        modelMatrix = mult(translate(-9, -1.0, 10+term2+(i*-20)),sMatrix);
         gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
         gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
 
-        modelMatrix = mult(translate(3, 1.3, z), rMatrix);
-        modelMatrix = mult(trballMatrix, modelMatrix);
+        modelMatrix = mult(translate(9, -1.0, term2+(i*-20)),sMatrix);
         gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
         gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
 
-        // draw a hexa-pyramid
-        gl.useProgram(program0);
-        //gl.uniform4f(uColorLoc, 0.0, 0.0, 1.0, 1.0);    // blue
-        gl.uniform4f(uColorLoc,0.0,0.0,1.0,0.5);
-
-        gl.disable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
         
-        modelMatrix = mult(translate(-3, -0.5, z), rotateZ(180));
-        modelMatrix = mult(trballMatrix, modelMatrix);
-        gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
-        gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
-
-        modelMatrix = mult(translate(3, -0.5, z), rotateZ(180));
-        modelMatrix = mult(trballMatrix, modelMatrix);
-        gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
-        gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
         
-        gl.disable(gl.BLEND);
-        gl.enable(gl.DEPTH_TEST);
+
     }
 }
 
