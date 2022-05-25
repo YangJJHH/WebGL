@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>학번 이름 - Scene with Texture Mapping</title>
+        <title>20175143 양재혁- 컴퓨터그래픽스 프로젝트</title>
         
         <script id="colorVS" type="x-shader/x-vertex">
             attribute vec4 vPosition;
@@ -111,22 +111,22 @@
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
         <script type="text/javascript" src="../Common/initShaders.js"></script>
         <script type="text/javascript" src="../Common/MV.js"></script>
-        <script type="text/javascript" src="../trackball.js"></script>
         <script type="text/javascript" src="project.js"></script>
     </head>
     <body>
-        <div style="width:800px; text-align:center;">
-            <button id="left">◀</button>
-            <button id="up">▲</button>
-            <button id="right">▶</button><br>
-            <button id="down">▼</button>
-        </div>
         <canvas id="gl-canvas" width="1600" height="1000">
             Oops... your browser doesn't support the HTML5 canvas element!
         </canvas>
-        <div>
-            <img src="../images/logo.bmp" hidden>
-            <img src="../images/crate.bmp" hidden>
+        <div style="width:1600px;text-align:center;">
+            <h1 id="time">Time:0</h1>
+            <h1>입력키</h1>
+            <b>1인칭 : 숫자1</b>  
+            <br>
+            <b>3인칭 : 숫자3</b>
+            <br>
+            <b>우측이동 : A</b>  
+            <br>
+            <b>좌측이동 : D</b>
         </div>
     </body>
 </html>

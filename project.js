@@ -4,10 +4,15 @@ var uColorLoc;
 var points = [];
 var normals = [];
 var texCoords = [];
-var moveSpeed = 0.05;
+var moveSpeed = 0.1;
 var term = 0;
 var max = -90;
 var tireTheta = 0;
+var viewMode = 3;
+var endPoint= -10;
+var changeval = 0;
+var Pos=[];
+var GameOver = false;
 
 var program0,program1,program2;
 var modelMatrixLoc0, viewMatrixLoc0,modelMatrixLoc1, viewMatrixLoc1,modelMatrixLoc2, viewMatrixLoc2;
@@ -17,11 +22,21 @@ var atPos = vec3(0.0, 1.0, -3.0);
 var upVec = vec3(0.0, 1.0, 0.0);
 var cameraVec = vec3(0.0, 0.0, -3.0); // 1.0/Math.sqrt(2.0)
 
+
+var ambientProduct;
+var diffuseProduct;
+var specularProduct;
+
 var theta = 0;
-var prevTime = new Date();
+var timerID;
+var totalTime;
+var context;
 
 window.onload = function init()
 {
+    start();
+    GameOver = false;
+
     var canvas = document.getElementById("gl-canvas");
 
     gl = WebGLUtils.setupWebGL(canvas);
@@ -134,9 +149,26 @@ window.onload = function init()
 
     setLighting(program2);
     setTexture();
-
+    for(var i=0; i<20; i++){
+        Pos.push(Spawn());
+        
+        //console.log(coord);
+    }
     render();
 };
+function start(){
+    totalTime = 0;
+    timerID = setInterval("timer()",1000);
+}
+
+function timer(){
+    totalTime +=1;
+    document.getElementById("time").innerText = "Time:"+totalTime;
+    if(GameOver){
+        clearInterval(timerID);
+    }
+
+}
 
 window.onkeydown = function(event) {
     switch (event.keyCode) {
@@ -158,6 +190,25 @@ window.onkeydown = function(event) {
                 eyePos[0] = newPosX;
             } 
             break;
+        case 49:    // 1
+            if(viewMode != 1){
+                eyePos[1]+= -1.0;
+                eyePos[2]+= -3.0;
+                atPos[1]+= -1.0;;
+                upVec = vec3(0.0, 1.0, 0.0);
+                cameraVec = vec3(0.0, 0.0, -3.0); 
+                viewMode = 1;
+            }
+            break;
+        case 51:    // 3
+            if(viewMode != 3){
+                eyePos[1]+= 1.0;
+                eyePos[2]+= 3.0;
+                atPos[1]+= 1.0;;
+                cameraVec = vec3(0.0, 0.0, -3.0);
+                viewMode = 3;
+            }
+            break;
     }
     //render();
 };
@@ -175,9 +226,9 @@ function setLighting(program) {
     var matDiffuse = [1.0, 1.0, 1.0, 1.0];
     var matSpecular = [0.0, 0.0, 0.0, 1.0];
     
-    var ambientProduct = mult(lightAmbient, matAmbient);
-    var diffuseProduct = mult(lightDiffuse, matDiffuse);
-    var specularProduct = mult(lightSpecular, matSpecular);
+    ambientProduct = mult(lightAmbient, matAmbient);
+    diffuseProduct = mult(lightDiffuse, matDiffuse);
+    specularProduct = mult(lightSpecular, matSpecular);
 
     gl.uniform4fv(gl.getUniformLocation(program, "lightSrc"), lightSrc);
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), ambientProduct);
@@ -186,6 +237,9 @@ function setLighting(program) {
 
     gl.uniform1f(gl.getUniformLocation(program, "shininess"), 100.0);
     gl.uniform3fv(gl.getUniformLocation(program, "eyePos"), flatten(eyePos));
+    
+   
+
 };
 
 function setTexture(){
@@ -241,50 +295,82 @@ function setTexture(){
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
 
+    var image5 = new Image();
+    image5.src = "../images/guard.bmp"
+    var texture5 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D,texture5);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image5);
+
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+
+    var image6 = new Image();
+    image6.src = "../images/danger.bmp"
+    var texture6 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_2D,texture6);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE, image6);
+
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+
 }
 
 function render() {
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    eyePos[2] -=moveSpeed;
-    atPos[0] = eyePos[0] + cameraVec[0];
-    atPos[1] = eyePos[1] + cameraVec[1];
-    atPos[2] = eyePos[2] + cameraVec[2];
-    var viewMatrix = lookAt(eyePos, atPos, upVec);
-    gl.useProgram(program0);
-    gl.uniformMatrix4fv(viewMatrixLoc0, false, flatten(viewMatrix));
-    gl.useProgram(program1);
-    gl.uniformMatrix4fv(viewMatrixLoc1, false, flatten(viewMatrix));
-    gl.useProgram(program2);
-    gl.uniformMatrix4fv(viewMatrixLoc2, false, flatten(viewMatrix));
-    
-    /* let currTime = new Date();
-    let elapsedTime = currTime.getTime() - prevTime.getTime();
-    theta += (elapsedTime / 10);
-    prevTime = currTime; */
-    theta += 1.0;
-
-    uColorLoc = gl.getUniformLocation(program0,"uColor");
-    textureLoc = gl.getUniformLocation(program2,"texture");
-
+    if(!GameOver){
         
-    //var uColorLoc = gl.getUniformLocation(program0, "uColor");
-    //var diffuseProductLoc = gl.getUniformLocation(program1, "diffuseProduct");
-    //var textureLoc = gl.getUniformLocation(program2,"texture");
-    if((atPos[2]-max)<=50){
-        //term = max;
-        ground(max);
-        map(max);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        eyePos[2] -=moveSpeed;
+        atPos[0] = eyePos[0] + cameraVec[0];
+        atPos[1] = eyePos[1] + cameraVec[1];
+        atPos[2] = eyePos[2] + cameraVec[2];
+        var viewMatrix = lookAt(eyePos, atPos, upVec);
+        gl.useProgram(program0);
+        gl.uniformMatrix4fv(viewMatrixLoc0, false, flatten(viewMatrix));
+        gl.useProgram(program1);
+        gl.uniformMatrix4fv(viewMatrixLoc1, false, flatten(viewMatrix));
+        gl.useProgram(program2);
+        gl.uniformMatrix4fv(viewMatrixLoc2, false, flatten(viewMatrix));
+        
+        /* let currTime = new Date();
+        let elapsedTime = currTime.getTime() - prevTime.getTime();
+        theta += (elapsedTime / 10);
+        prevTime = currTime; */
+        theta += 1.0;
+    
+        uColorLoc = gl.getUniformLocation(program0,"uColor");
+        textureLoc = gl.getUniformLocation(program2,"texture");
+    
+        changeObstacleCoordinate();    
+        //var uColorLoc = gl.getUniformLocation(program0, "uColor");
+        //var diffuseProductLoc = gl.getUniformLocation(program1, "diffuseProduct");
+        //var textureLoc = gl.getUniformLocation(program2,"texture");
+        
+        if((atPos[2]-max)<=50){ //절반까지 왔을때 전방 맵 미리 생성
+            //term = max;
+            ground(term-100);
+            map(term-100);
+            
+    
+    
+        }
+        if(atPos[2]<=max){
+            term += -100;
+            max += -100;
+        }
+        ground(term);
+        map(term);
+        //////////////car
+        if(viewMode ==3){
+            player();
+        }
+        
+        
+    
+        moveSpeed+=0.00001;
+    
     }
-    if(atPos[2]<=max){
-        term = max;
-        max += -100;
-    }
-    ground(term);
-    map(term);
-    //////////////car
-    player();
-
-    moveSpeed+=0.00001;
     window.requestAnimationFrame(render);
 }
 function ground(term2){
@@ -312,6 +398,7 @@ function player(){
     var diffuseProductLoc = gl.getUniformLocation(program1, "diffuseProduct");
     gl.uniform4f(diffuseProductLoc,0.0,2.0,0.0,1.0);
 
+    console.log(atPos[2]);
     //차 본체
     modelMatrix = translate(atPos[0], -0.3, atPos[2]);
     var sMatrix = mat4(0.5,0.0,0.0,0.0 ,0.0,0.5,0.0,0.0 ,0.0,0.0,0.5,0.0 ,0.0,0.0,0.0,1.0);
@@ -353,59 +440,27 @@ function player(){
     gl.useProgram(program2);
     gl.uniform1i(textureLoc,4);
     var sMatrix = mat4(0.2,0.0,0.0,0.0 ,0.0,0.3,0.0,0.0 ,0.0,0.0,0.3,0.0 ,0.0,0.0,0.0,1.0);
-    modelMatrix = mult(rotateX(theta),sMatrix);
+    modelMatrix = mult(rotateX(theta+moveSpeed),sMatrix);
     modelMatrix = mult(rotateY(tireTheta),modelMatrix);
     modelMatrix = mult(translate(atPos[0]-0.35, -0.5, atPos[2]+0.25), modelMatrix);
     gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
     gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
 
-    modelMatrix = mult(rotateX(theta),sMatrix);
+    modelMatrix = mult(rotateX(theta+moveSpeed),sMatrix);
     modelMatrix = mult(rotateY(tireTheta),modelMatrix);
     modelMatrix = mult(translate(atPos[0]+0.35, -0.5, atPos[2]+0.25), modelMatrix);
     gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
     gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+    detectCollision(atPos[0],atPos[2]);
 
     
 }
 function map(term2){
+    var diffuseProductLoc = gl.getUniformLocation(program1, "diffuseProduct");
     for(var i=0; i<5; i++){
-        for (var z=-5; z<0; z+=2) {
-            // draw a cube
-            gl.useProgram(program2);
-            gl.uniform1i(textureLoc,1);
-            //gl.uniform4f(uColorLoc, 1.0, 0.0, 0.0, 1.0);    // red
-            //gl.uniform4f(diffuseProductLoc,1.0,0.0,0.0,1.0);
-            
-            var rMatrix = mult(rotateY(theta), rotateZ(45));
-            modelMatrix = mult(translate(-6, 1.3, z+term2+(i*-20)), rMatrix);
-            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
-            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
-
-            modelMatrix = mult(translate(6, 1.3, z+term2+(i*-20)), rMatrix);
-            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
-            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
-    
-            // draw a hexa-pyramid
-            gl.useProgram(program0);
-            //gl.uniform4f(uColorLoc, 0.0, 0.0, 1.0, 1.0);    // blue
-            gl.uniform4f(uColorLoc,0.0,0.0,1.0,0.5);
-    
-            gl.disable(gl.DEPTH_TEST);
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-            
-            modelMatrix = mult(translate(-6, -0.5, z+term2+(i*-20)), rotateZ(180));
-            gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
-            gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
-    
-            modelMatrix = mult(translate(6, -0.5, z+term2+(i*-20)), rotateZ(180));
-            gl.uniformMatrix4fv(modelMatrixLoc0, false, flatten(modelMatrix));
-            gl.drawArrays(gl.TRIANGLES, vertPyraStart, numVertPyraTri);
-            
-            gl.disable(gl.BLEND);
-            gl.enable(gl.DEPTH_TEST);
-        }
-
+  
+        var ambientProductLoc = gl.getUniformLocation(program2, "ambientProduct");
+      
         //건물
         gl.useProgram(program2);
         gl.uniform1i(textureLoc,3);
@@ -418,10 +473,66 @@ function map(term2){
         gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
         gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
 
-        
-        
 
+       
+        ambientProduct = mult([1.0, 1.0, 1.0, 1.0],[1.0, 1.0, 1.0, 1.0]);
+        gl.uniform4fv(ambientProductLoc, ambientProduct);
+        // 가드레일
+        for(var k=0; k<20; k++){
+            gl.uniform1i(textureLoc,5);
+            modelMatrix = translate(-5, -0.5, 10+term2+(i*-20)-k);
+            var sMatrix = mat4(0.3,0.0,0.0,0.0 ,0.0,0.3,0.0,0.0 ,0.0,0.0,0.8,0.0 ,0.0,0.0,0.0,1.0);
+            modelMatrix = mult(modelMatrix,sMatrix);
+            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+
+            modelMatrix = translate(5, -0.5, 10+term2+(i*-20)-k);
+            var sMatrix = mat4(0.3,0.0,0.0,0.0 ,0.0,0.3,0.0,0.0 ,0.0,0.0,0.8,0.0 ,0.0,0.0,0.0,1.0);
+            modelMatrix = mult(modelMatrix,sMatrix);
+            gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+            gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+        }
+
+        ambientProduct = mult([0.4, 0.4, 0.4, 1.0],[1.0, 1.0, 1.0, 1.0]);
+        gl.uniform4fv(ambientProductLoc, ambientProduct);
     }
+    //장애물
+    gl.uniform1i(textureLoc,6);
+    for(var j =0; j<Pos.length; j++){
+        modelMatrix = mult(translate(Pos[j][0],Pos[j][1],Pos[j][2]+term2),rotateZ(90));
+        gl.uniformMatrix4fv(modelMatrixLoc2, false, flatten(modelMatrix));
+        gl.drawArrays(gl.TRIANGLES, vertCubeStart, numVertCubeTri);
+    }
+}
+function detectCollision(newPosX,newPosZ){
+    for(var i=0; i<Pos.length; i++){
+        if(Math.abs(newPosX-Pos[i][0]) < 1.0 && Math.abs(newPosZ-(Pos[i][2]+changeval)) < 1.0){
+            var value = confirm("Timer record:"+totalTime);
+            if(value){
+                GameOver = true;
+                window.location.reload();
+            }
+
+            
+        }
+    }
+}
+
+function changeObstacleCoordinate(){
+    if(atPos[2]<=max){
+        changeval += -100;
+        
+    }
+
+}
+
+function Spawn(){
+    var newPos;
+    var xPos=(Math.random()*(4.5+4.5))-4.5;
+    var yPos = -0.5;
+    var zPos=(Math.random()*((max+100)-max))+max;
+    newPos=vec3(xPos,yPos,zPos);
+    return newPos;
 }
 
 function generateTexCube() {
