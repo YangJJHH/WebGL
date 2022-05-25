@@ -30,7 +30,6 @@ var specularProduct;
 var theta = 0;
 var timerID;
 var totalTime;
-var context;
 
 window.onload = function init()
 {
@@ -507,7 +506,7 @@ function map(term2){
 function detectCollision(newPosX,newPosZ){
     for(var i=0; i<Pos.length; i++){
         if(Math.abs(newPosX-Pos[i][0]) < 1.0 && Math.abs(newPosZ-(Pos[i][2]+changeval)) < 1.0){
-            var value = confirm("Timer record:"+totalTime);
+            var value = confirm("Timer record:"+totalTime+"\n게임을 다시 시작하려면 확인 버튼을 누르세요");
             if(value){
                 GameOver = true;
                 window.location.reload();
